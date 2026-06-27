@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { HealthCheckResponse } from "@/types";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -7,15 +8,16 @@ export async function GET() {
   const start = Date.now();
 
   try {
-    // In a full feature implementation, this would perform query pings on database & cache.
-    // For the framework architecture, we verify standard operational readiness.
+    // Perform a raw database query ping to confirm PostgreSQL connectivity
+    await prisma.$queryRaw`SELECT 1`;
+
     const response: HealthCheckResponse = {
       status: "healthy",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       services: {
-        database: "connected", // Placeholder for actual client ping confirmation
-        cache: "connected",    // Placeholder for actual redis ping confirmation
+        database: "connected",
+        cache: "connected", // Placeholder for future Redis client integration
       },
     };
 
@@ -26,7 +28,9 @@ export async function GET() {
         "cache-control": "no-store, max-age=0",
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("Health check database ping failed:", error);
+
     const errorResponse: HealthCheckResponse = {
       status: "unhealthy",
       timestamp: new Date().toISOString(),

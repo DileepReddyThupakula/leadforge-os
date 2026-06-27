@@ -23,24 +23,31 @@ model User {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   memberships Membership[]
+  auditLogs   AuditLog[]
+  sessions    Session[]
+  apiKeys     ApiKey[]
 
   @@map("user")
 }
 
 model Organization {
   id          String       @id @default(uuid())
+  clerkOrgId  String       @unique
   name        String
   slug        String       @unique
   imageUrl    String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   memberships Membership[]
+  auditLogs   AuditLog[]
+  apiKeys     ApiKey[]
 
   @@map("organization")
 }
 
 model Membership {
   id             String       @id @default(uuid())
+  clerkMemberId  String       @unique
   role           Role         @default(MEMBER)
   userId         String
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -53,4 +60,53 @@ model Membership {
   @@index([userId])
   @@index([organizationId])
   @@map("membership")
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  action         String
+  entityType     String
+  entityId       String
+  metadata       Json?
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@map("audit_log")
+}
+
+model ApiKey {
+  id             String       @id @default(uuid())
+  keyHash        String       @unique
+  name           String
+  scopes         String[]
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([organizationId])
+  @@map("api_key")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("session")
 }
