@@ -1,0 +1,18 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
+
+export function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (callback) => {
+      const media = window.matchMedia(query);
+      media.addEventListener("change", callback);
+      return () => media.removeEventListener("change", callback);
+    },
+    () => {
+      if (typeof window === "undefined") return false;
+      return window.matchMedia(query).matches;
+    },
+    () => false // server side fallback
+  );
+}
