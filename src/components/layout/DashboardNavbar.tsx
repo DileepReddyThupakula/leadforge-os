@@ -6,19 +6,10 @@ import { dashboardConfig } from "@/config/dashboard";
 import { siteConfig } from "@/config/site";
 import { Icon, IconName } from "@/components/shared/Icon";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
+import { UserButton } from "@clerk/nextjs";
 
 export function DashboardNavbar() {
   const pathname = usePathname();
@@ -120,44 +111,7 @@ export function DashboardNavbar() {
         </Button>
 
         {/* User profile dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full border border-white/[0.05]">
-              <Avatar size="sm" className="h-8 w-8">
-                <AvatarImage src="/avatar-placeholder.png" alt="User Profile" />
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">JD</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 border border-white/[0.05] bg-card p-1">
-            <DropdownMenuLabel className="px-2 py-1.5">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-semibold leading-none text-foreground">John Doe</p>
-                <p className="text-xs leading-none text-muted-foreground">john.doe@leadforge.os</p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <Link href="/dashboard/settings">
-                <DropdownMenuItem className="cursor-pointer">
-                  <Icon name="Settings" className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/dashboard/billing">
-                <DropdownMenuItem className="cursor-pointer">
-                  <Icon name="CreditCard" className="mr-2 h-4 w-4" />
-                  <span>Billing</span>
-                </DropdownMenuItem>
-              </Link>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:bg-destructive/10">
-              <Icon name="LogOut" className="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <UserButton />
       </div>
     </header>
   );
