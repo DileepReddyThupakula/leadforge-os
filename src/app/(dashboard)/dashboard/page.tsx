@@ -7,6 +7,9 @@ import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/shared/Icon";
 import Link from "next/link";
+import { CompanyRepository } from "@/lib/db/repositories/company.repository";
+import { ContactRepository } from "@/lib/db/repositories/contact.repository";
+import { LeadRepository } from "@/lib/db/repositories/lead.repository";
 
 export default async function DashboardPage() {
   const { orgId, orgRole, orgSlug } = await auth();
@@ -19,6 +22,35 @@ export default async function DashboardPage() {
   }
 
   const roleDisplay = orgRole === "org:admin" ? "Administrator" : "Member";
+
+  // Fetch real-time count metrics from PostgreSQL using the Repository layer
+  let totalLeads = 0;
+  let newLeads = 0;
+  let qualifiedLeads = 0;
+  let wonLeads = 0;
+  let lostLeads = 0;
+  let totalCompanies = 0;
+  let totalContacts = 0;
+
+  if (orgId) {
+    const [leadsRes, newRes, qualRes, wonRes, lostRes, cosRes, contactsRes] = await Promise.all([
+      LeadRepository.findMany(orgId, { limit: 1 }),
+      LeadRepository.findMany(orgId, { status: "NEW", limit: 1 }),
+      LeadRepository.findMany(orgId, { status: "QUALIFIED", limit: 1 }),
+      LeadRepository.findMany(orgId, { status: "WON", limit: 1 }),
+      LeadRepository.findMany(orgId, { status: "LOST", limit: 1 }),
+      CompanyRepository.findMany(orgId, { limit: 1 }),
+      ContactRepository.findMany(orgId, { limit: 1 }),
+    ]);
+
+    totalLeads = leadsRes.total;
+    newLeads = newRes.total;
+    qualifiedLeads = qualRes.total;
+    wonLeads = wonRes.total;
+    lostLeads = lostRes.total;
+    totalCompanies = cosRes.total;
+    totalContacts = contactsRes.total;
+  }
   return (
     <PageContainer>
       {/* Page Header with action buttons */}
@@ -39,35 +71,53 @@ export default async function DashboardPage() {
         }
       />
 
-      {/* KPI Stats Grid */}
+      {/* Lead Opportunity KPI Stats Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mt-6">
         <StatCard
-          title="Total Leads Ingested"
-          value="148,290"
-          description="from all channels"
-          trend={{ value: "+12.4%", type: "positive" }}
+          title="Total Leads"
+          value={totalLeads.toString()}
+          description="Active opportunities"
           icon={<Icon name="Users" className="size-4" />}
         />
         <StatCard
-          title="Enrichment Matches"
-          value="94.2%"
-          description="average match rate"
-          trend={{ value: "+2.1%", type: "positive" }}
-          icon={<Icon name="Cpu" className="size-4" />}
+          title="New Leads"
+          value={newLeads.toString()}
+          description="Awaiting outreach"
+          icon={<Icon name="Plus" className="size-4" />}
         />
         <StatCard
-          title="Sequence Outreach"
-          value="87,301"
-          description="active emails sent"
-          trend={{ value: "-1.5%", type: "negative" }}
-          icon={<Icon name="Mail" className="size-4" />}
+          title="Qualified Leads"
+          value={qualifiedLeads.toString()}
+          description="Verified buyers"
+          icon={<Icon name="Layers" className="size-4" />}
         />
         <StatCard
-          title="Workspace Status"
-          value="Healthy"
-          description="API latency 24ms"
-          trend={{ value: "100%", type: "neutral" }}
-          icon={<Icon name="Globe" className="size-4" />}
+          title="Won Opportunities"
+          value={wonLeads.toString()}
+          description="Closed won deals"
+          icon={<Icon name="Check" className="size-4" />}
+        />
+      </div>
+
+      {/* Account & Contact Stats Grid */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 mt-6">
+        <StatCard
+          title="Lost Opportunities"
+          value={lostLeads.toString()}
+          description="Closed lost deals"
+          icon={<Icon name="AlertTriangle" className="size-4" />}
+        />
+        <StatCard
+          title="Total Companies"
+          value={totalCompanies.toString()}
+          description="Corporate accounts"
+          icon={<Icon name="Building" className="size-4" />}
+        />
+        <StatCard
+          title="Total Contacts"
+          value={totalContacts.toString()}
+          description="Individual stakeholders"
+          icon={<Icon name="User" className="size-4" />}
         />
       </div>
 

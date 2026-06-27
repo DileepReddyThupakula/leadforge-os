@@ -17,8 +17,30 @@ export interface LeadFilterOptions {
   limit?: number;
 }
 
+export type LeadWithRelations = Prisma.LeadGetPayload<{
+  include: {
+    company: true;
+    contact: true;
+    source: true;
+    owner: true;
+    tags: true;
+    notes: { orderBy: { createdAt: "desc" } };
+    activities: { orderBy: { createdAt: "desc" } };
+  };
+}>;
+
+export type LeadListEntry = Prisma.LeadGetPayload<{
+  include: {
+    company: true;
+    contact: true;
+    source: true;
+    owner: true;
+    tags: true;
+  };
+}>;
+
 export class LeadRepository {
-  static async findById(organizationId: string, id: string): Promise<Lead | null> {
+  static async findById(organizationId: string, id: string): Promise<LeadWithRelations | null> {
     try {
       return await prisma.lead.findFirst({
         where: { id, organizationId },
@@ -31,7 +53,7 @@ export class LeadRepository {
           notes: { orderBy: { createdAt: "desc" } },
           activities: { orderBy: { createdAt: "desc" } },
         },
-      });
+      }) as LeadWithRelations | null;
     } catch (error) {
       handleDatabaseError(error);
     }
@@ -40,7 +62,7 @@ export class LeadRepository {
   static async findMany(
     organizationId: string,
     options: LeadFilterOptions = {}
-  ): Promise<{ data: Lead[]; total: number }> {
+  ): Promise<{ data: LeadListEntry[]; total: number }> {
     try {
       const {
         status,

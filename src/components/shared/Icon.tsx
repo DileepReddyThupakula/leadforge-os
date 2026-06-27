@@ -16,6 +16,20 @@ import {
   AlertTriangle,
   Info,
   Globe,
+  Search,
+  Plus,
+  Trash,
+  Archive,
+  Calendar,
+  DollarSign,
+  Tag,
+  FileText,
+  Activity,
+  Building,
+  User,
+  Phone,
+  ArrowLeft,
+  RefreshCw,
   LucideProps
 } from "lucide-react";
 
@@ -37,6 +51,20 @@ export const icons = {
   AlertTriangle,
   Info,
   Globe,
+  Search,
+  Plus,
+  Trash,
+  Archive,
+  Calendar,
+  DollarSign,
+  Tag,
+  FileText,
+  Activity,
+  Building,
+  User,
+  Phone,
+  ArrowLeft,
+  RefreshCw,
 };
 
 export type IconName = keyof typeof icons;
