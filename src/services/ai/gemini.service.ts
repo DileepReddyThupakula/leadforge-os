@@ -182,4 +182,161 @@ ${conversationText}
       recommendedAction: "Schedule a discovery call to present listings.",
     };
   }
+
+  static async generateInsights(messages: { sender: string; content: string }[]): Promise<InsightsData> {
+    if (!genAI) {
+      return this.generateMockInsights(messages);
+    }
+
+    try {
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: SchemaType.OBJECT,
+            properties: {
+              score: { type: SchemaType.INTEGER },
+              temperature: { type: SchemaType.STRING, description: "HOT, WARM, or COLD" },
+              intent: { type: SchemaType.STRING },
+              budgetConfidence: { type: SchemaType.NUMBER },
+              timelineConfidence: { type: SchemaType.NUMBER },
+              contactCompleteness: { type: SchemaType.NUMBER },
+              completionPercentage: { type: SchemaType.NUMBER },
+              summary: { type: SchemaType.STRING },
+              recommendedAction: { type: SchemaType.STRING },
+              priority: { type: SchemaType.STRING },
+              riskFlags: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.STRING },
+              },
+              reason: { type: SchemaType.STRING },
+              suggestedTasks: {
+                type: SchemaType.ARRAY,
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    title: { type: SchemaType.STRING },
+                    description: { type: SchemaType.STRING },
+                    dueDays: { type: SchemaType.INTEGER },
+                  },
+                  required: ["title", "description", "dueDays"],
+                },
+              },
+            },
+            required: [
+              "score",
+              "temperature",
+              "intent",
+              "budgetConfidence",
+              "timelineConfidence",
+              "contactCompleteness",
+              "completionPercentage",
+              "summary",
+              "recommendedAction",
+              "priority",
+              "riskFlags",
+              "reason",
+              "suggestedTasks",
+            ],
+          },
+        },
+      });
+
+      const conversationText = messages
+        .map((m) => `${m.sender}: ${m.content}`)
+        .join("\n");
+
+      const prompt = `
+Analyze the following conversation logs between a real estate buyer and the qualifying agent Aria.
+Produce the insights data, decision explainability rationale, and suggested CRM follow-up tasks.
+
+Conversation Logs:
+${conversationText}
+`;
+
+      const result = await model.generateContent(prompt);
+      const jsonText = result.response.text();
+      return JSON.parse(jsonText) as InsightsData;
+    } catch (error) {
+      console.error("Gemini insights generation failed:", error);
+      return this.generateMockInsights(messages);
+    }
+  }
+
+  private static generateMockInsights(messages: { sender: string; content: string }[]): InsightsData {
+    const text = messages.map((m) => m.content.toLowerCase()).join(" ");
+    const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
+    const phoneMatch = text.match(/\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/);
+
+    const hasContact = !!(emailMatch || phoneMatch);
+    const hasBudget = text.includes("$") || text.includes("budget") || text.includes("thousand") || text.includes("million");
+    const hasLocation = text.includes("boston") || text.includes("austin") || text.includes("location");
+    const hasTimeline = text.includes("immediate") || text.includes("month") || text.includes("soon");
+
+    let score = 30;
+    if (hasContact) score += 30;
+    if (hasBudget) score += 15;
+    if (hasLocation) score += 15;
+    if (hasTimeline) score += 10;
+
+    const temperature = score >= 75 ? "HOT" : score >= 45 ? "WARM" : "COLD";
+    const contactCompleteness = hasContact ? 1.0 : 0.0;
+    const budgetConfidence = hasBudget ? 0.9 : 0.1;
+    const timelineConfidence = hasTimeline ? 0.8 : 0.2;
+    const completionPercentage = ((score - 30) / 70) * 100;
+
+    const reason = `Lead scored ${score} because:
+- Contact information: ${hasContact ? "Provided" : "Missing"}
+- Budget indicators: ${hasBudget ? "Exposed" : "Incomplete"}
+- Purchasing timeline: ${hasTimeline ? "Disclosed" : "Undetermined"}`;
+
+    return {
+      score,
+      temperature,
+      intent: score >= 75 ? "Strong purchase interest" : "General discovery phase",
+      budgetConfidence,
+      timelineConfidence,
+      contactCompleteness,
+      completionPercentage: Math.max(0, Math.min(100, completionPercentage)),
+      summary: "Qualified lead via real estate chat session.",
+      recommendedAction: score >= 75 ? "Call immediately" : "Ask for missing information",
+      priority: score >= 75 ? "HIGH" : "MEDIUM",
+      riskFlags: hasContact ? [] : ["Missing primary contact credentials"],
+      reason,
+      suggestedTasks: [
+        {
+          title: "Call tomorrow",
+          description: "Reach out to lead to clarify property requirements.",
+          dueDays: 1,
+        },
+        {
+          title: "Verify financing",
+          description: "Follow up regarding pre-approval letter status.",
+          dueDays: 3,
+        },
+      ],
+    };
+  }
 }
+
+export interface InsightsData {
+  score: number;
+  temperature: "HOT" | "WARM" | "COLD";
+  intent: string;
+  budgetConfidence: number;
+  timelineConfidence: number;
+  contactCompleteness: number;
+  completionPercentage: number;
+  summary: string;
+  recommendedAction: string;
+  priority: string;
+  riskFlags: string[];
+  reason: string;
+  suggestedTasks: {
+    title: string;
+    description: string;
+    dueDays: number;
+  }[];
+}
+

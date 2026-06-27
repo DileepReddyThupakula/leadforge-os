@@ -49,26 +49,29 @@ model User {
 }
 
 model Organization {
-  id                 String              @id @default(uuid())
-  clerkOrgId         String              @unique
-  name               String
-  slug               String              @unique
-  imageUrl           String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  memberships        Membership[]
-  auditLogs          AuditLog[]
-  apiKeys            ApiKey[]
-  companies          Company[]
-  contacts           Contact[]
-  leadSources        LeadSource[]
-  leadTags           LeadTag[]
-  leads              Lead[]
-  leadActivities     LeadActivity[]
-  notes              Note[]
-  conversations      Conversation[]
-  aiAnalyses         AIAnalysis[]
-  leadQualifications LeadQualification[]
+  id                  String                @id @default(uuid())
+  clerkOrgId          String                @unique
+  name                String
+  slug                String                @unique
+  imageUrl            String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  memberships         Membership[]
+  auditLogs           AuditLog[]
+  apiKeys             ApiKey[]
+  companies           Company[]
+  contacts            Contact[]
+  leadSources         LeadSource[]
+  leadTags            LeadTag[]
+  leads               Lead[]
+  leadActivities      LeadActivity[]
+  notes               Note[]
+  conversations       Conversation[]
+  aiAnalyses          AIAnalysis[]
+  leadQualifications  LeadQualification[]
+  aiTasks             AITask[]
+  aiRecommendations   AIRecommendation[]
+  qualificationMetrics QualificationMetric[]
 
   @@map("organization")
 }
@@ -201,30 +204,32 @@ model LeadTag {
 }
 
 model Lead {
-  id             String         @id @default(uuid())
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  companyId      String
-  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  contactId      String?
-  contact        Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  title          String
-  status         LeadStatus     @default(NEW)
-  priority       Priority       @default(MEDIUM)
-  sourceId       String?
-  source         LeadSource?    @relation(fields: [sourceId], references: [id], onDelete: SetNull)
-  value          Decimal?       @db.Decimal(12, 2)
-  currency       String         @default("USD")
-  ownerId        String?
-  owner          User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  archivedAt     DateTime?
-  activities     LeadActivity[]
-  notes          Note[]
-  tags           LeadTag[]      @relation("LeadToTag")
-  conversations  Conversation[]
-  aiAnalyses     AIAnalysis[]
+  id                String             @id @default(uuid())
+  organizationId    String
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  companyId         String
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId         String?
+  contact           Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  title             String
+  status            LeadStatus         @default(NEW)
+  priority          Priority           @default(MEDIUM)
+  sourceId          String?
+  source            LeadSource?        @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  value             Decimal?           @db.Decimal(12, 2)
+  currency          String             @default("USD")
+  ownerId           String?
+  owner             User?              @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  archivedAt        DateTime?
+  activities        LeadActivity[]
+  notes             Note[]
+  tags              LeadTag[]          @relation("LeadToTag")
+  conversations     Conversation[]
+  aiAnalyses        AIAnalysis[]
+  aiTasks           AITask[]
+  aiRecommendations AIRecommendation[]
 
   @@index([organizationId])
   @@index([companyId])
@@ -265,17 +270,20 @@ model Note {
 }
 
 model Conversation {
-  id                  String              @id @default(uuid())
+  id                  String               @id @default(uuid())
   organizationId      String
-  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   leadId              String?
-  lead                Lead?               @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  status              String              @default("ACTIVE") // ACTIVE, COMPLETED
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  lead                Lead?                @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  status              String               @default("ACTIVE")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
   messages            Message[]
   leadQualifications  LeadQualification[]
   aiAnalyses          AIAnalysis[]
+  aiTasks             AITask[]
+  aiRecommendations   AIRecommendation[]
+  qualificationMetric QualificationMetric?
 
   @@index([organizationId])
   @@index([leadId])
@@ -286,7 +294,7 @@ model Message {
   id             String       @id @default(uuid())
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         String       // "USER", "ASSISTANT", "SYSTEM"
+  sender         String
   content        String
   createdAt      DateTime     @default(now())
 
@@ -330,7 +338,7 @@ model LeadQualification {
   email             String?
   score             Int?
   summary           String?
-  intent            String?      // HOT, WARM, COLD
+  intent            String?
   recommendedAction String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
@@ -338,4 +346,62 @@ model LeadQualification {
   @@index([organizationId])
   @@index([conversationId])
   @@map("lead_qualification")
+}
+
+model AITask {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  leadId         String?
+  lead           Lead?         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  title          String
+  description    String
+  dueDate        DateTime
+  status         String        @default("PENDING")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([leadId])
+  @@index([conversationId])
+  @@map("ai_task")
+}
+
+model AIRecommendation {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  leadId         String?
+  lead           Lead?         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  action         String
+  reason         String
+  priority       String
+  riskFlags      String[]
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId])
+  @@index([leadId])
+  @@index([conversationId])
+  @@map("ai_recommendation")
+}
+
+model QualificationMetric {
+  id                   String       @id @default(uuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversationId       String       @unique
+  conversation         Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  budgetConfidence     Float
+  timelineConfidence   Float
+  contactCompleteness  Float
+  completionPercentage Float
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@map("qualification_metric")
 }
