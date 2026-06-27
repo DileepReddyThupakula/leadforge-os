@@ -1,3 +1,4 @@
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Section } from "@/components/layout/Section";
@@ -5,8 +6,19 @@ import { StatCard } from "@/components/shared/StatCard";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/shared/Icon";
+import Link from "next/link";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { orgId, orgRole, orgSlug } = await auth();
+  
+  let orgName = "Workspace";
+  if (orgId) {
+    const client = await clerkClient();
+    const org = await client.organizations.getOrganization({ organizationId: orgId });
+    orgName = org.name;
+  }
+
+  const roleDisplay = orgRole === "org:admin" ? "Administrator" : "Member";
   return (
     <PageContainer>
       {/* Page Header with action buttons */}
@@ -84,6 +96,43 @@ export default function DashboardPage() {
 
         {/* Workspace Quick Details */}
         <div className="space-y-6">
+          <Section title="Active Workspace" description="Multi-tenant tenant profile.">
+            <GlassCard className="space-y-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between border-b border-white/[0.04] pb-2">
+                  <span className="text-muted-foreground">Name:</span>
+                  <span className="font-semibold text-foreground">{orgName}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/[0.04] pb-2">
+                  <span className="text-muted-foreground">Slug:</span>
+                  <span className="font-mono text-foreground">{orgSlug || "N/A"}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/[0.04] pb-2">
+                  <span className="text-muted-foreground">ID:</span>
+                  <span className="font-mono text-[11px] text-muted-foreground select-all break-all text-right">{orgId || "N/A"}</span>
+                </div>
+                <div className="flex justify-between pb-1">
+                  <span className="text-muted-foreground">Role:</span>
+                  <span className="font-semibold text-primary">{roleDisplay}</span>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Link href="/dashboard/settings/workspace" className="w-full">
+                  <Button size="xs" className="w-full" variant="secondary">
+                    <Icon name="Settings" className="size-3 mr-1" />
+                    Settings
+                  </Button>
+                </Link>
+                <Link href="/dashboard/members" className="w-full">
+                  <Button size="xs" className="w-full" variant="secondary">
+                    <Icon name="Users" className="size-3 mr-1" />
+                    Members
+                  </Button>
+                </Link>
+              </div>
+            </GlassCard>
+          </Section>
+
           <Section title="Active Pipelines" description="Operational enrichment services.">
             <GlassCard className="space-y-4">
               <div className="space-y-3">

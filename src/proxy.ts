@@ -10,6 +10,10 @@ const isPublicRoute = createRouteMatcher([
   "/api/v1/webhooks/clerk(.*)",
 ]);
 
+const isOnboardingRoute = createRouteMatcher([
+  "/onboarding(.*)",
+]);
+
 export const proxy = (request: NextRequest, event: NextFetchEvent) => {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   const secretKey = process.env.CLERK_SECRET_KEY;
@@ -37,9 +41,26 @@ export const proxy = (request: NextRequest, event: NextFetchEvent) => {
 
   // Execute standard Clerk protection middleware
   return clerkMiddleware(async (auth, req) => {
-    if (!isPublicRoute(req)) {
+    // 1. Skip checks for public routes
+    if (isPublicRoute(req)) {
+      return NextResponse.next();
+    }
+
+    const authObject = await auth();
+
+    // 2. Force authentication
+    if (!authObject.userId) {
       await auth.protect();
     }
+
+    // 3. Redirect to /onboarding if user has no active organization and attempts to access dashboard
+    const url = new URL(req.url);
+    if (!authObject.orgId && !isOnboardingRoute(req) && url.pathname.startsWith("/dashboard")) {
+      const onboardingUrl = new URL("/onboarding", req.url);
+      return NextResponse.redirect(onboardingUrl);
+    }
+
+    return NextResponse.next();
   })(request, event);
 };
 

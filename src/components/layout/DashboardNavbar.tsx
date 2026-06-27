@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 
 export function DashboardNavbar() {
   const pathname = usePathname();
@@ -111,6 +111,22 @@ export function DashboardNavbar() {
         </Button>
 
         {/* User profile dropdown */}
+        <OrganizationSwitcher
+          hidePersonal={true}
+          appearance={{
+            variables: {
+              colorPrimary: "oklch(0.65 0.22 142)",
+              colorBackground: "oklch(0.18 0.015 250)",
+              colorForeground: "oklch(0.985 0 0)",
+              colorBorder: "oklch(1 0 0 / 8%)",
+            },
+            elements: {
+              rootBox: "flex items-center",
+              organizationSwitcherTrigger: "border border-white/[0.05] bg-secondary/80 text-foreground hover:bg-secondary transition-colors rounded-lg px-2.5 py-1.5 h-8 text-[13px] font-medium max-w-[200px]",
+              organizationSwitcherTriggerIcon: "text-muted-foreground",
+            },
+          }}
+        />
         <UserButton />
       </div>
     </header>
